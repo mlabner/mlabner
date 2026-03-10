@@ -13,17 +13,6 @@
       "iconURL": "https://github.com/mlabner/repo/releases/download/v1.0.0/AppIcon60x60%402x.png",
       "size": 11684380,
       "tintColor": "007AFF"
-    },
-    {
-      "name": "RespringApp",
-      "bundleIdentifier": "com.respring.app",
-      "developerName": "mlabner",
-      "version": "1.0",
-      "versionDate": "2026-03-10T19:21:34Z",
-      "downloadURL": "https://github.com/mlabner/repo/releases/download/v1.0/respringapp.ipa",
-      "iconURL": "",
-      "size": 264632,
-      "tintColor": "007AFF"
     }
   ]
 }
