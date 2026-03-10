@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Essential for rebase to work
 
       - name: Remove App from JSON
         run: |
@@ -26,16 +28,9 @@ jobs:
 
           echo "Removing app with BundleID: $TARGET_ID"
           
-          # Check if the app exists before trying to delete
-          EXIST=$(jq --arg id "$TARGET_ID" '.apps | any(.bundleIdentifier == $id)' source.json)
-          
-          if [ "$EXIST" == "true" ]; then
-            jq --arg id "$TARGET_ID" 'del(.apps[] | select(.bundleIdentifier == $id))' source.json > updated.json
-            mv updated.json source.json
-          else
-            echo "BundleID $TARGET_ID not found in source.json."
-            exit 1
-          fi
+          # Use JQ to delete the entry
+          jq --arg id "$TARGET_ID" 'del(.apps[] | select(.bundleIdentifier == $id))' source.json > updated.json
+          mv updated.json source.json
 
       - name: Commit and Push
         run: |
@@ -43,4 +38,7 @@ jobs:
           git config --global user.email "action@github.com"
           git add source.json
           git commit -m "Manual Removal: ${{ github.event.inputs.bundle_id }}" || exit 0
+          
+          # The Secret Sauce: Pull latest changes, put our deletion on top, then push
+          git pull --rebase origin main
           git push origin HEAD:main
