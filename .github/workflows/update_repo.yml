@@ -20,7 +20,7 @@ jobs:
         run: |
           # 1. Wait for assets to fully register
           echo "Waiting 5 seconds for assets to settle..."
-          sleep 5
+          sleep 10
           
           # DEBUG: Show us what assets are actually detected
           echo "Detected Assets: $RELEASE_ASSETS"
