@@ -1,0 +1,61 @@
+name: Update Feather Repo
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-json:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Update JSON
+        run: |
+          # 1. Capture Assets (IPA and Icon)
+          DOWNLOAD_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | endswith(".ipa")) | .browser_download_url' | head -n 1)
+          SIZE=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | endswith(".ipa")) | .size' | head -n 1)
+          ICON_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | (endswith(".png") or endswith(".jpg") or endswith(".jpeg"))) | .browser_download_url' | head -n 1)
+
+          # 2. Extract Metadata from Description
+          VERSION="${{ github.event.release.tag_name }}"
+          CLEAN_VERSION=$(echo $VERSION | sed 's/v//')
+          TARGET_ID=$(echo "${{ github.event.release.body }}" | grep -oP 'BundleID:\s*\K[^\s]+')
+          APP_NAME=$(echo "${{ github.event.release.body }}" | grep -oP 'Name:\s*\K.*')
+
+          # 3. Update or Insert into source.json
+          jq --arg id "$TARGET_ID" \
+             --arg name "$APP_NAME" \
+             --arg ver "$CLEAN_VERSION" \
+             --arg url "$DOWNLOAD_URL" \
+             --arg icon "${ICON_URL:-https://raw.githubusercontent.com/mlabner/repo/main/default_icon.png}" \
+             --arg size "$SIZE" \
+             --arg date "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+             'if (.apps | any(.bundleIdentifier == $id)) 
+              then 
+                (.apps[] | select(.bundleIdentifier == $id)) |= (.version = $ver | .downloadURL = $url | .size = ($size | tonumber) | .versionDate = $date | .iconURL = (if $icon != "" then $icon else .iconURL end))
+              else 
+                .apps = [{
+                  "name": $name,
+                  "bundleIdentifier": $id,
+                  "developerName": "mlabner",
+                  "version": $ver,
+                  "versionDate": $date,
+                  "downloadURL": $url,
+                  "iconURL": $icon,
+                  "localizedDescription": ("Added " + $name + " via automation."),
+                  "size": ($size | tonumber),
+                  "tintColor": "007AFF"
+                }] + .apps 
+              end' \
+             source.json > temp.json && mv temp.json source.json
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add source.json
+          git commit -m "Auto-update $TARGET_ID version ${{ github.event.release.tag_name }}"
+          git push
