@@ -2,6 +2,7 @@ name: Update Feather Repo
 on:
   release:
     types: [published, edited, created, deleted]
+  workflow_dispatch: # Allows manual run if auto-trigger fails
 
 jobs:
   update-json:
@@ -16,37 +17,38 @@ jobs:
 
       - name: Update JSON
         run: |
-          # 1. Determine the Action Type
           ACTION="${{ github.event.action }}"
+          # Use the release body from the event
           BODY="${{ github.event.release.body }}"
           
-          # 2. Extract BundleID (Needed for both adding and deleting)
-          TARGET_ID=$(echo "$BODY" | grep -i "BundleID:" | awk '{print $2}' | tr -d '\r' | xargs)
+          # Improved BundleID extraction for deletions
+          TARGET_ID=$(echo "$BODY" | grep -i "BundleID:" | head -n 1 | awk '{print $2}' | tr -d '\r' | xargs)
           
-          # 3. Handle Deletion
+          # 1. Handle Deletion
           if [ "$ACTION" == "deleted" ]; then
             if [ -z "$TARGET_ID" ]; then
-              echo "Error: Could not find BundleID in the deleted release body to remove it."
-              exit 1
+              echo "No BundleID found in the deleted release description. Skipping removal."
+              exit 0 
             fi
             
-            echo "Deleting app with BundleID: $TARGET_ID"
+            echo "Removing $TARGET_ID from repo..."
             jq --arg id "$TARGET_ID" 'del(.apps[] | select(.bundleIdentifier == $id))' source.json > updated.json
           
-          # 4. Handle Create/Edit/Publish
+          # 2. Handle Add/Update
           else
-            APP_NAME=$(echo "$BODY" | grep -i "Name:" | cut -d':' -f2- | sed 's/^[[:space:]]*//' | tr -d '\r' | xargs)
+            APP_NAME=$(echo "$BODY" | grep -i "Name:" | head -n 1 | cut -d':' -f2- | sed 's/^[[:space:]]*//' | tr -d '\r' | xargs)
             DOWNLOAD_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | endswith(".ipa")) | .browser_download_url' | head -n 1)
             ICON_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | (endswith(".png") or endswith(".jpg") or endswith(".jpeg"))) | .browser_download_url' | head -n 1)
             SIZE=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | endswith(".ipa")) | .size' | head -n 1 || echo "0")
 
             if [ -z "$TARGET_ID" ] || [ -z "$APP_NAME" ]; then
-              echo "Error: Metadata missing in Release Body."
+              echo "Error: Could not find Name or BundleID in release body."
               exit 1
             fi
 
+            # Self-healing skeleton
             if [ ! -f source.json ] || [ ! -s source.json ]; then
-              echo '{"name":"mlabner Repo","iconURL":"https://raw.githubusercontent.com/mlabner/repo/refs/heads/main/Repo%20Icon.png","identifier":"com.mlabner.repo","apps":[]}' > source.json
+               echo '{"name":"mlabner Repo","iconURL":"https://raw.githubusercontent.com/mlabner/repo/refs/heads/main/Repo%20Icon.png","identifier":"com.mlabner.repo","apps":[]}' > source.json
             fi
 
             VERSION="${{ github.event.release.tag_name }}"
