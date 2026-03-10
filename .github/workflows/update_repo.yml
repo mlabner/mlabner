@@ -32,9 +32,9 @@ jobs:
             exit 1
           fi
 
-          # 4. Ensure source.json is valid (Self-Healing)
+          # 4. Ensure source.json is valid (Includes your new Repo Icon)
           if [ ! -f source.json ] || [ ! -s source.json ]; then
-            echo '{"name":"mlabner Repo","identifier":"com.mlabner.repo","apps":[]}' > source.json
+            echo '{"name":"mlabner Repo","iconURL":"https://raw.githubusercontent.com/mlabner/repo/refs/heads/main/Repo%20Icon.png","identifier":"com.mlabner.repo","apps":[]}' > source.json
           fi
 
           # 5. Prepare Variables
@@ -61,7 +61,6 @@ jobs:
                   "versionDate": $date,
                   "downloadURL": $url,
                   "iconURL": $icon,
-                  "localizedDescription": "Updated via GitHub Actions",
                   "size": ($size | tonumber),
                   "tintColor": "007AFF"
                 }] + .apps 
@@ -75,5 +74,4 @@ jobs:
           git config --global user.email "action@github.com"
           git add source.json
           git commit -m "Auto-update $TARGET_ID to ${{ github.event.release.tag_name }}" || exit 0
-          # Fix for detached HEAD: Push specifically to the main branch
           git push origin HEAD:main
