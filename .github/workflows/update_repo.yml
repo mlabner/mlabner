@@ -52,4 +52,7 @@ jobs:
           git config --global user.email "action@github.com"
           git add source.json
           git commit -m "Repo Update: ${{ github.event.release.tag_name }}" || exit 0
+          
+          # The Fix: Pull latest changes before pushing to avoid "non-fast-forward" errors
+          git pull --rebase origin main
           git push origin HEAD:main
