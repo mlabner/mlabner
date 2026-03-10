@@ -1,3 +1,19 @@
+name: Update Feather Repo
+on:
+  release:
+    types: [published, edited, created]
+
+jobs:
+  update-json:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Update JSON
         env:
           RELEASE_ASSETS: ${{ toJson(github.event.release.assets) }}
@@ -8,7 +24,7 @@
           APP_NAME=$(echo "$BODY" | grep -i "Name:" | head -n 1 | cut -d':' -f2- | sed 's/^[[:space:]]*//' | tr -d '\r' | xargs)
           
           # 2. Advanced Asset Capture
-          # This JQ command looks for images and sorts them so "icon" files are at the top
+          # This JQ command finds images, favors ones with "icon" in the name, and picks the best one.
           ICON_URL=$(echo "$RELEASE_ASSETS" | jq -r '
             [ .[] | select(.name | test("\\.(png|jpg|jpeg)$"; "i")) ] 
             | sort_by(.name | test("icon"; "i") | not) 
@@ -57,3 +73,12 @@
               end' source.json > updated.json
           
           mv updated.json source.json
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add source.json
+          git commit -m "Repo Update: ${{ github.event.release.tag_name }}" || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
