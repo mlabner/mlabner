@@ -1,0 +1,46 @@
+name: Manual App Deletion
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: 'Enter the BundleID of the app to remove'
+        required: true
+
+jobs:
+  delete-app:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Remove App from JSON
+        run: |
+          TARGET_ID="${{ github.event.inputs.bundle_id }}"
+          
+          if [ ! -f source.json ]; then
+            echo "source.json not found."
+            exit 1
+          fi
+
+          echo "Removing app with BundleID: $TARGET_ID"
+          
+          # Check if the app exists before trying to delete
+          EXIST=$(jq --arg id "$TARGET_ID" '.apps | any(.bundleIdentifier == $id)' source.json)
+          
+          if [ "$EXIST" == "true" ]; then
+            jq --arg id "$TARGET_ID" 'del(.apps[] | select(.bundleIdentifier == $id))' source.json > updated.json
+            mv updated.json source.json
+          else
+            echo "BundleID $TARGET_ID not found in source.json."
+            exit 1
+          fi
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add source.json
+          git commit -m "Manual Removal: ${{ github.event.inputs.bundle_id }}" || exit 0
+          git push origin HEAD:main
