@@ -1,5 +1,6 @@
 {
   "name": "Repo",
+  "iconURL":"https://raw.githubusercontent.com/mlabner/repo/refs/heads/main/Repo%20Icon.png",
   "identifier": "com.mlabner.repo",
   "apps": [
     {
