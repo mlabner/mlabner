@@ -4,17 +4,6 @@
   "identifier": "com.mlabner.repo",
   "apps": [
     {
-      "name": "X",
-      "bundleIdentifier": "com.atebits.Tweetie2",
-      "developerName": "mlabner",
-      "version": "11.73",
-      "versionDate": "2026-03-18T15:06:14Z",
-      "downloadURL": "https://github.com/mlabner/repo/releases/download/v11.73/com.atebits.Tweetie2-11.73-eeveedecrypter.ipa",
-      "iconURL": null,
-      "size": 184062477,
-      "tintColor": "007AFF"
-    },
-    {
       "name": "RespringApp",
       "bundleIdentifier": "com.respring.app",
       "developerName": "mlabner",
